@@ -2,7 +2,7 @@ if (typeof module === "object" && module.exports) {
     module.exports = tests;
 }
 
-function tests(describe, it, expect, Lib) {
+function tests(describe, it, expect, Core) {
     "use strict";
     
     describe("the test harness", () => {
@@ -46,19 +46,19 @@ function tests(describe, it, expect, Lib) {
         });
     });
 
-    describe(`the library (${Lib})`, () => {
-        it("is exported as a global function named 'Lib'", () => {
-            expect(typeof Lib).toBe("function");
+    describe(`the library (${Core})`, () => {
+        it("is exported as a global function named 'Core'", () => {
+            expect(typeof Core).toBe("function");
         });
         it("provides a 'use' function to open a sandboxed scope", () => {
             let sandbox = void 0;
-            Lib.use(sbx => sandbox = sbx);
+            Core.use(sbx => sandbox = sbx);
 
             expect(sandbox).not.toBeUndefined();
         });
         describe("the sandbox API provided to a 'use' callback", () => {
             let sandbox;
-            Lib.use(sbx => sandbox = sbx);
+            Core.use(sbx => sandbox = sbx);
 
             it("has a 'log' function", () => {
                 expect(typeof sandbox.log).toBe("function");
