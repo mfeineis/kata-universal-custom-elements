@@ -1,0 +1,7 @@
+{
+    "compilerOptions": {
+        "checkJs": true,
+        "module": "es2015",
+        "target": "es6"
+    }
+}
