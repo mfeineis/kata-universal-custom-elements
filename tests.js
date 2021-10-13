@@ -72,6 +72,9 @@ function tests(describe, it, expect, Core) {
 
                 expect(typeof unsub).toBe("function");
             });
+            it("has a 'request' function", () => {
+                expect(typeof sandbox.request).toBe("function");
+            });
         });
     });
 }
