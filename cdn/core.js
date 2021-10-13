@@ -9,7 +9,12 @@
     for (const plugin of plugins) {
         extendWith(plugin);
     }
-    window[NAME] = core;
+
+    if (typeof module === "object") {
+        module.exports = core;
+    } else {
+        window[NAME] = core;
+    }
 
 }("Core", "0.0.1", self, function (NAME, VERSION, window) {
 
