@@ -4,11 +4,12 @@ Core.use(() => {
     const baseUrl = "/cdn/x";
     const cache = new Map();
 
+    // FIXME: Migrate to our custom element API once it's done
     customElements.define("x-requires", class extends HTMLElement {
         connectedCallback() {
             const doc = this.ownerDocument;
             const elements = this.getAttribute("elements") ?? "";
-            for (const rawDep of elements.split(",")) {
+            for (const rawDep of elements.split(" ")) {
                 const dep = rawDep.trim();
                 if (cache.has(dep)) {
                     continue;
