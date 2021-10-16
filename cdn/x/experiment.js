@@ -1,6 +1,6 @@
 /* global Core, customElements */
 
-Core.use(({ log }) => {
+Core.use(({ log, publish, subscribe }) => {
 
     class Base extends HTMLElement {}
 
@@ -93,6 +93,8 @@ Core.use(({ log }) => {
         customElements.define(tag, Component);
     }
 
+    subscribe("did-mount", yesno => alert(`did-mount ${yesno}`));
+
     define("x-experiment", {
         name: attr("name"),
         value: prop("value"),
@@ -100,9 +102,11 @@ Core.use(({ log }) => {
         componentDidMount() {
             log("  x-experiment.componentDidMount", this);
             this.value = "a value from componentDidMount";
+            publish("did-mount", true);
         },
         componentDidUnmount() {
             log("  x-experiment.componentDidUnmount", this);
+            publish("did-mount", false);
         },
         render() {
             log("  x-experiment.render", this);

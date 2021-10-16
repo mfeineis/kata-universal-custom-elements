@@ -1,6 +1,6 @@
 /* global Core, customElements */
 
-Core.use(({ subscribe, publish }) => {
+Core.use(({ publish, subscribe }) => {
 
     subscribe("say-hello", who => {
         alert(`Hello, ${who}`);
@@ -11,11 +11,21 @@ Core.use(({ subscribe, publish }) => {
             return ["who"];
         }
         connectedCallback() {
-            this.appendChild(this.ownerDocument.createTextNode(`Hello, ${this._who}!`));
-            this.addEventListener("click", this._sayHello);
+            const button = this.ownerDocument.createElement("button");
+            button.type = "button";
+            button.appendChild(this.ownerDocument.createTextNode(`Hello, ${this._who}!`));
+            button.addEventListener("click", (e) => this._sayHello(e));
+            this._button = button;
+
+            const div = this.ownerDocument.createElement("div");
+            div.classList.add("border");
+            div.classList.add("p-1");
+            div.appendChild(button);
+
+            this.appendChild(div);
         }
         disconnectedCallback() {
-            this.removeEventListener("click", this._sayHello);
+            this._button.removeEventListener("click", this._sayHello);
         }
         attributeChangedCallback(attr, oldValue, newValue) {
             
