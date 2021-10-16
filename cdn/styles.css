@@ -1,0 +1,147 @@
+/* styles.css */
+
+:root {
+  font-size: calc(1rem + 0.5vw);
+
+  --measure: 60ch;
+}
+
+* {
+  box-sizing: border-box;
+  max-width: var(--measure);
+}
+
+html,
+body,
+div,
+header,
+nav,
+main,
+footer {
+  max-width: none;
+}
+
+button {
+  font-size: inherit;
+}
+
+.max-width\:measure {
+  max-width: var(--measure);
+}
+
+.max-width\:measure\/2 {
+  max-width: calc(var(--measure) / 2);
+}
+
+/* Colors */
+
+:root {
+  --primary: #ff6600;
+  --border-color: var(--primary);
+  --border-thin: 1px;
+}
+
+/* Utilities */
+
+:root {
+  --ratio: 1.61803398875;
+  /*--ratio: 1.5;*/
+  --s-5: calc(var(--s-4) / var(--ratio));
+  --s-4: calc(var(--s-3) / var(--ratio));
+  --s-3: calc(var(--s-2) / var(--ratio));
+  --s-2: calc(var(--s-1) / var(--ratio));
+  --s-1: calc(var(--s0) / var(--ratio));
+  --s0: 1rem;
+  --s1: calc(var(--s0) * var(--ratio));
+  --s2: calc(var(--s1) * var(--ratio));
+  --s3: calc(var(--s2) * var(--ratio));
+  --s4: calc(var(--s3) * var(--ratio));
+  --s5: calc(var(--s4) * var(--ratio));
+}
+
+.bg-primary {
+  background-color: var(--primary);
+}
+.bg-white {
+  background-color: white;
+}
+
+.border {
+  border: var(--border-color) var(--border-thin) solid;
+}
+
+.m-0 {
+  margin: 0;
+}
+
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.p-0 {
+  padding: 0;
+}
+.p-1 {
+  padding: var(--s-3);
+}
+.p-2 {
+  padding: var(--s-1);
+}
+
+/* Components */
+
+box-l {
+  display: block;
+  padding: var(--s1);
+  border-width: var(--border-thin);
+  outline: var(--border-thin) solid transparent;
+  outline-offset: calc(var(--border-thin)*-1);
+}
+
+center-l {
+  display: block;
+  box-sizing: content-box;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: var(--measure);
+}
+
+cover-l {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--s1);
+  max-width: none;
+}
+
+sidebar-l {
+  max-width: none;
+}
+sidebar-l > * {
+  display: flex;
+  flex-wrap: wrap;
+}
+sidebar-l > * > * {
+  flex-grow: 1;
+}
+sidebar-l[left] > * > :last-child {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-width: 50%;
+}
+sidebar-l[right] > * > :first-child {
+  flex-basis: 0;
+  flex-grow: 999;
+  min-width: 50%;
+}
+
+stack-l {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+stack-l > * + * {
+  margin-top: var(--s1);
+}
+

@@ -1,21 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Another JS Lib</title>
-    <link rel="stylesheet" href="styles.css" type="text/css">
-    <script src="cdn/core.js"></script>
-    <script defer src="cdn/x/requires.js"></script>
+  <meta charset="utf-8">
+  <title>Another JS Lib</title>
+  <link href="/cdn/styles.css" rel="stylesheet">
+  <script src="/cdn/core.js"></script>
+  <script defer src="/cdn/x/requires.js"></script>
 </head>
-<body>
-    <x-requires elements="hello"></x-requires>
-    <x-hello who="Bob"></x-hello>
+<body class="m-0">
+  <x-requires elements="hello"></x-requires>
+  <box-l>
+    <stack-l>
+      <x-hello who="Alice"></x-hello>
+      <x-hello who="Bob"></x-hello>
+      <x-hello who="Carol"></x-hello>
+      <x-hello who="Danika"></x-hello>
+    </stack-l>
+  </box-l>
+  <center-l>
+    <div class="border p-1">
+      Center
+    </div>
+  </center-l>
 
-    <x-requires elements="experiment"></x-requires>
-    <x-experiment name="Bob"></x-experiment>
+  <x-requires elements="experiment"></x-requires>
+  <x-experiment name="Bob"></x-experiment>
 
-    <script src="describe.js"></script>
-    <script src="tests.js"></script>
-    <script>tests(describe, describe.it, describe.expect, Core);</script>
+  <cover-l class="bg-primary">
+    <center-l>
+      <stack-l>
+        <span>Cover</span>
+
+        <sidebar-l left>
+          <div>
+            <div class="bg-white opacity-50">Sidebar left</div>
+            <div class="bg-white">
+              <h1>Content</h1>
+              <p>
+                This content should wrap around
+              </p>
+            </div>
+          </div>
+        </sidebar-l>
+
+        <sidebar-l right>
+          <div>
+            <div class="bg-white">
+              <h1>Content</h1>
+              <p>
+                This content should wrap around
+              </p>
+            </div>
+            <div class="bg-white opacity-50">Sidebar right</div>
+          </div>
+        </sidebar-l>
+      </stack-l>
+    </center-l>
+  </cover-l>
+
+  <script src="describe.js"></script>
+  <script src="tests.js"></script>
+  <script>tests(describe, describe.it, describe.expect, Core);</script>
 </body>
 </html>
