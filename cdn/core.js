@@ -108,15 +108,15 @@ function requestPlugin(Sandbox, window) {
         let middleware = [];
 
         function pump(fn, rawData) {
-            try {
-                const data = middleware.reduce(
-                    (acc, mw) => mw(acc),
-                    rawData
-                );
-                fn(data);
-            } catch (e) {
+            fn(middleware.reduce(
+                (acc, mw) => mw(acc),
+                rawData
+            ));
+        }
+        function pumpMany(fns, rawData) {
+            for (const listener of listeners) {
+                pump(listener, rawData);
                 // FIXME: Error handling
-                console.error(e);
             }
         }
 
@@ -148,39 +148,44 @@ function requestPlugin(Sandbox, window) {
             if (!e.lengthComputable) {
                 return;
             }
-            const progress = e.loaded / e.total * 100;
-            log("  xhr.progress", progress, e);
+            pumpMany(listeners, ["progress", {
+                loaded: e.loaded,
+                total: e.total,
+                progress: e.loaded / e.total * 100,
+            }]);
         });
-        xhr.addEventListener("load", (...args) => {
-            //log("xhr.onload", xhr);
-            const isDocument = responseType === "document";
+        xhr.addEventListener("load", () => {
             responseStatus = xhr.status;
             responseStatusText = xhr.statusText;
 
             response = xhr.response;
-
-            //log("transfer complete", ...args);
             isDone = true;
 
-            for (const listener of listeners) {
-                pump(listener, response);
-            }
+            pumpMany(listeners, ["done", response]);
         });
-        xhr.addEventListener("error", (...args) => {
-            log("  xhr.error: transfer failed", ...args);
+        xhr.addEventListener("error", (ev) => {
+            log("  xhr.error: transfer failed", ev);
+            isDone = true;
+            pumpMany(listeners, ["error", null]);
         });
-        xhr.addEventListener("abort", (...args) => {
-            log("  xhr.abort: transfer cancelled", ...args);
+        xhr.addEventListener("abort", (ev) => {
+            log("  xhr.abort: transfer cancelled", ev);
+            isDone = true;
+            pumpMany(listeners, ["abort", null]);
         });
-        xhr.addEventListener("loadend", (...args) => {
+        xhr.addEventListener("loadend", (ev) => {
             //log("The transfer finished (although we don't know if it succeeded or not).", ...args);
+            pumpMany(listeners, ["complete", {
+                loaded: ev.loaded,
+            }]);
             xhr = null;
             listeners = null;
         });
 
         xhr.timeout = timeout;
-        xhr.addEventListener("timeout", (...args) => {
-            log("xhr.timeout: transfer timed out", ...args);
+        xhr.addEventListener("timeout", (ev) => {
+            log("xhr.timeout: transfer timed out", ev);
+            pumpMany(listeners, ["timeout", null]);
         });
 
         xhr.responseType = responseType;
@@ -193,8 +198,10 @@ function requestPlugin(Sandbox, window) {
         const api = {
             // Our API is a Thenable so it can be `await`-ed
             then(resolve, reject) {
-                api.subscribe((data) => {
-                    resolve(data);
+                api.subscribe(([ev, data]) => {
+                    if (ev === "done") {
+                        resolve(data);
+                    }
                     // FIXME: Error handling
                 });
             },
@@ -206,7 +213,8 @@ function requestPlugin(Sandbox, window) {
         };
         api.subscribe = (fn) => {
             if (isDone) {
-                pump(fn, response);
+                pump(fn, ["done", response]);
+                // FIXME: Error handling
                 return () => {};
             }
             listeners.push(fn);
