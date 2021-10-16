@@ -86,41 +86,137 @@ function requestPlugin(Sandbox, window) {
     const { XMLHttpRequest } = window;
     const { log, publish, subscribe } = new Sandbox();
 
-    Sandbox.prototype.request = (url, options = {}) => {
+    Sandbox.prototype.request = request;
+
+    function request(url, options = {}) {
         const {
             body = null,
+            headers = {},
             method = "GET",
+            params = {},
+            responseType = "text",
             sync = false,
+            timeout = 10 * 1000,
+            withCredentials = false,
         } = options;
 
+        let hasBeenSent = false;
+        let isDone = false;
+        let hasContentType = false;
+
+        let listeners = [];
+        let middleware = [];
+
+        function pump(fn, rawData) {
+            try {
+                const data = middleware.reduce(
+                    (acc, mw) => mw(acc),
+                    rawData
+                );
+                fn(data);
+            } catch (e) {
+                // FIXME: Error handling
+                console.error(e);
+            }
+        }
+
         let xhr = new XMLHttpRequest();
+
+        const q = Object.keys(params).map((key) => {
+            return key + "=" + encodeURIComponent(params[key]);
+        }).join("&");
+        const query = url.indexOf("?") >= 0 ? "&" + q : "?" + q;
+
+        Object.keys(headers).forEach((key) => {
+            if (/^content-type/i.test(key)) {
+                hasContentType = true;
+            }
+            xhr.setRequestHeader(key, headers[key]);
+        });
+
+        if (!hasContentType && body !== null && typeof body === "object") {
+            xhr.setRequestHeader(
+                "Content-Type", "application/json; charset=utf-8"
+            );
+        }
+
+        let response = null;
+        let responseStatus = null;
+        let responseStatusText = null;
+
         xhr.addEventListener("progress", e => {
             if (!e.lengthComputable) {
                 return;
             }
             const progress = e.loaded / e.total * 100;
-            log("progress", progress);
+            log("  xhr.progress", progress, e);
         });
-        xhr.addEventListener("load", () => {
-            log("transfer complete");
+        xhr.addEventListener("load", (...args) => {
+            //log("xhr.onload", xhr);
+            const isDocument = responseType === "document";
+            responseStatus = xhr.status;
+            responseStatusText = xhr.statusText;
+
+            response = xhr.response;
+
+            //log("transfer complete", ...args);
+            isDone = true;
+
+            for (const listener of listeners) {
+                pump(listener, response);
+            }
         });
-        xhr.addEventListener("error", () => {
-            log("transfer failed");
+        xhr.addEventListener("error", (...args) => {
+            log("  xhr.error: transfer failed", ...args);
         });
-        xhr.addEventListener("abort", () => {
-            log("transfer cancelled");
+        xhr.addEventListener("abort", (...args) => {
+            log("  xhr.abort: transfer cancelled", ...args);
         });
-        xhr.addEventListener("loadend", () => {
-            log("The transfer finished (although we don't know if it succeeded or not).");
+        xhr.addEventListener("loadend", (...args) => {
+            //log("The transfer finished (although we don't know if it succeeded or not).", ...args);
             xhr = null;
+            listeners = null;
         });
 
-        xhr.open(method, url, !sync);
+        xhr.timeout = timeout;
+        xhr.addEventListener("timeout", (...args) => {
+            log("xhr.timeout: transfer timed out", ...args);
+        });
 
-        const api = {};
+        xhr.responseType = responseType;
+        if (withCredentials) {
+            xhr.withCredentials = Boolean(withCredentials);
+        }
+
+        xhr.open(method, q.length ? url + query : url, !sync);
+
+        const api = {
+            // Our API is a Thenable so it can be `await`-ed
+            then(resolve, reject) {
+                api.subscribe((data) => {
+                    resolve(data);
+                    // FIXME: Error handling
+                });
+            },
+            // TODO: Allow middleware?
+            //push: function push(fn) {
+            //    middleware.push(fn);
+            //    return api;
+            //},
+        };
         api.subscribe = (fn) => {
-            xhr.send(body);
+            if (isDone) {
+                pump(fn, response);
+                return () => {};
+            }
+            listeners.push(fn);
+
+            if (!hasBeenSent) {
+                xhr.send(body);
+                hasBeenSent = true;
+            }
             return () => {
+                listeners = listeners.filter(it => it !== fn);
                 if (!xhr) {
                     return;
                 }
@@ -130,6 +226,18 @@ function requestPlugin(Sandbox, window) {
 
         return Object.freeze(api);
     };
+
+    request.text = request;
+
+    request.json = (url, options = {}) => request(url, {
+        ...options,
+        responseType: "json",
+    });
+
+    request.document = (url, options = {}) => request(url, {
+        ...options,
+        responseType: "document",
+    });
 
 },
 ]));

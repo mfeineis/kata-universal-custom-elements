@@ -1,6 +1,6 @@
 /* global Core, customElements */
 
-Core.use(({ log, publish, subscribe }) => {
+Core.use(({ log, request, publish, subscribe }) => {
 
     class Base extends HTMLElement {}
 
@@ -93,7 +93,28 @@ Core.use(({ log, publish, subscribe }) => {
         customElements.define(tag, Component);
     }
 
-    subscribe("did-mount", yesno => alert(`did-mount ${yesno}`));
+    subscribe("did-mount", async yesno => {
+        const req = request.json("https://anapioficeandfire.com/api/characters/583");
+        req.subscribe((...args) => {
+            log("request.json().1", ...args);
+
+            req.subscribe((...args) => {
+                log("request.json().1.2", ...args);
+            });
+        });
+
+        const data = await request("https://anapioficeandfire.com/api/characters/581");
+        log("await request()", data);
+
+        const jonsnow = await request.json("https://anapioficeandfire.com/api/characters/583");
+        log("await request.json()", jonsnow);
+
+        const doc = await request.document("/index.html");
+        log("await request.document()", doc);
+
+        const css = await request.text("/cdn/styles.css");
+        log("await request.text()", css.slice(0, 50), "...");
+    });
 
     define("x-experiment", {
         name: attr("name"),
