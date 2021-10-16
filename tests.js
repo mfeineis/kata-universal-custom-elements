@@ -47,10 +47,15 @@ function tests(describe, it, expect, Core) {
     });
 
     describe(`the library (${Core})`, () => {
-        it("is exported as a global function named 'Core'", () => {
+        it(`is exported as a global function named '${Core.name}'`, () => {
             expect(typeof Core).toBe("function");
         });
+        it("provides a 'log' function", () => {
+            expect(typeof Core.log).toBe("function");
+        });
         it("provides a 'use' function to open a sandboxed scope", () => {
+            expect(typeof Core.use).toBe("function");
+
             let sandbox = void 0;
             Core.use(sbx => sandbox = sbx);
 

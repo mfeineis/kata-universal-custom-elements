@@ -5,15 +5,16 @@
         throw new Error("I need a modern ES2015+ environment.");
     }
 
-    const [core, extendWith] = factory(NAME, VERSION, window);
+    const [lib, extendWith] = factory(NAME, VERSION, window);
     for (const plugin of plugins) {
         extendWith(plugin);
     }
 
+    const sealed = Object.freeze(lib);
     if (typeof module === "object") {
-        module.exports = core;
+        module.exports = sealed;
     } else {
-        window[NAME] = core;
+        window[NAME] = sealed;
     }
 
 }("Core", "0.0.1", self, function (NAME, VERSION, window) {
@@ -31,14 +32,15 @@
     };
 
     function extendWith(plugin) {
-        plugin(Sandbox, window);
+        plugin(Sandbox, window, api);
     }
 
-    return [Object.freeze(api), extendWith];
+    return [api, extendWith];
 
 }, [
 function pubsubPlugin(Sandbox, window) {
 
+    // FIXME: Right now pubsub works within the same lib instance
     const prefix = `LIB.PS${btoa(String(Math.random()))}`.replace("=", "");
     const listeners = {};
 
@@ -73,8 +75,9 @@ function pubsubPlugin(Sandbox, window) {
     };
 
 },
-function loggingPlugin(Sandbox) {
+function loggingPlugin(Sandbox, _, Core) {
 
+    Core.log = console.log;
     Sandbox.prototype.log = console.log;
 
 },
