@@ -60,11 +60,10 @@ Core.use(({ log, request, publish, subscribe }) => {
             async connectedCallback() {
                 log("Component.connectedCallback:before");
                 const task = this.componentDidMount();
-                this.render();
+                this._render();
                 await task;
                 log("Component.connectedCallback:beforeRender");
-                this._removeChildren();
-                this.render();
+                this._render();
                 log("Component.connectedCallback:afterRender");
                 log("Component.connectedCallback:after", "store", this.__store__);
             }
@@ -80,8 +79,15 @@ Core.use(({ log, request, publish, subscribe }) => {
                 log("Component.adoptedCallback", ...args);
             }
 
-            _removeChildren() {
+            _render() {
                 this.innerHTML = "";
+                const nodes = this.render();
+                if (Array.isArray(nodes)) {
+                    this.innerHTML = "";
+                    for (const node of nodes) {
+                        this.appendChild(node);
+                    }
+                }
             }
         }
 
@@ -109,9 +115,53 @@ Core.use(({ log, request, publish, subscribe }) => {
             return (...args) => h(key, ...args);
         },
     });
-    function expr() { }
     function html(...args) {
         console.log("html", args);
+    }
+    function expr(...exprs) {
+
+        function eval([tag, props, ...children]) {
+            //console.log("eval", [tag, props, ...children]);
+            const node = document.createElement(tag);
+            for (const [key, value] of Object.entries(props || {})) {
+                //console.log("eval", key, "=>", value);
+                if (node.hasOwnProperty(key)) {
+                    node[key] = value;
+                } else {
+                    node.setAttribute(key, value);
+                }
+            }
+            return node;
+        }
+
+        const root = [];
+        for (let e of exprs) {
+            if (e === null || typeof e === "undefined") {
+                continue;
+            }
+            if (typeof e === "string") {
+                root.push(document.createTextNode(e));
+                continue;
+            }
+            let [tag, props, ...children] = e;
+            const def = [];
+            if (typeof tag === "string") {
+                def.push(tag);
+            }
+            if (typeof props === "object" && !Array.isArray(props)) {
+                def.push(props, ...children);
+            } else {
+                def.push(null, props, ...children);
+            }
+            [tag, props, ...children] = def;
+            const node = eval(def);
+            root.push(node);
+            const cs = expr(...children);
+            for (const child of cs) {
+                node.appendChild(child);
+            }
+        }
+        return root;
     }
 
     define("x-experiment", {
@@ -130,88 +180,18 @@ Core.use(({ log, request, publish, subscribe }) => {
         },
         render() {
             log("  x-experiment.render", this);
-            const div = this.ownerDocument.createElement("div");
-            const i = this.ownerDocument.createElement("i");
-            const text = this.ownerDocument.createTextNode(`Experimental ${this.name}`);
-            i.appendChild(text);
-            div.appendChild(i);
-            this.appendChild(div);
-
-            // Pro: Declarative
-            // Pro: Top-down execution possible
-            // Pro: Familiar
-            // Pro: Just data, can be transferred
-            // Con: Hard to provide typings
-            // Con: Hard to minify
-            return html`
-                <x-requires elements="child"></x-requires>
-                <div>
-                    <i>${this.name}</i>
-                    <x-child></x-child>
-                </div>
-            `;
 
             // Pro: Declarative
             // Pro: Top-down execution possible
             // Pro: Just data, can be transferred
+            // Pro: Compact
             // Pro: Easy to minify
             // Con: Hard to provide typings
             // Con: Unfamiliar
             return expr(
                 ["x-requires", { elements: "child" }],
-                ["div", ["i", `${this.name}`], ["x-child"]]
+                ["div", ["i", "Experimental ", `${this.name}`], ["x-child"]]
             );
-
-            // Pro: Can provide typings
-            // Pro: Uses JSX conventions
-            // Pro: Familiar
-            // Pro: Easy to minify
-            // Con: Bottom-up execution
-            // Con: Not easily transferable
-            return [
-                h("x-requires", { elements: "child" }),
-                h("div", h("i", `${this.name}`), h("x-child")),
-            ];
-
-            // Pro: Can provide typings
-            // Con: Unfamiliar
-            // Con: Bottom-up execution
-            // Con: Not easily transferable
-            // Con: Too "clever"
-            // Con: Hard to minify
-            return p.fragment(
-                p.xRequires({ elements: "child" }),
-                p.div(p.i(`${this.name}`), p.xChild()),
-            );
-            return ({ xRequires, div, i, xChild }) => [
-                xRequires({ elements: "child" }),
-                div(i(`${this.name}`), xChild()),
-            ];
-
-            // Pro: Top-down execution possible
-            // Con: Hard to provide typings
-            // Con: Very unfamiliar
-            // Con: Not easily transferable
-            // Con: Way too "clever"
-            // Con: Hard to minify
-            return (p.fragment)
-                (p.xRequires, { elements: "child" })()
-                (p.div)
-                    (p.i, `${this.name}`)()
-                    (p.xChild)()
-                ()
-            ();
-
-            // Pro: Declarative
-            // Pro: Top-down execution possible
-            // Pro: Just data, can be transferred
-            // Con: Hard to provide typings
-            // Con: Hard to minify
-            return edn`
-               '((x-requires { :elements "child" })
-                 (div (i "${this.name}") (x-child))
-                )
-            `;
         },
     });
 
