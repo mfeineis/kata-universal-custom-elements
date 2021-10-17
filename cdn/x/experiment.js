@@ -57,15 +57,20 @@ Core.use(({ log, request, publish, subscribe }) => {
                     });
                 }
             }
-            connectedCallback() {
+            async connectedCallback() {
                 log("Component.connectedCallback:before");
-                this.componentDidMount();
+                const task = this.componentDidMount();
                 this.render();
+                await task;
+                log("Component.connectedCallback:beforeRender");
+                this._removeChildren();
+                this.render();
+                log("Component.connectedCallback:afterRender");
                 log("Component.connectedCallback:after", "store", this.__store__);
             }
-            disconnectedCallback(...args) {
+            async disconnectedCallback(...args) {
                 log("Component.disconnectedCallback", ...args);
-                this.componentDidUnmount(this);
+                await this.componentDidUnmount(this);
             }
             attributeChangedCallback(name, old, value) {
                 log("Component.attributeChangedCallback", name, old, value);
@@ -73,6 +78,10 @@ Core.use(({ log, request, publish, subscribe }) => {
             }
             adoptedCallback(...args) {
                 log("Component.adoptedCallback", ...args);
+            }
+
+            _removeChildren() {
+                this.innerHTML = "";
             }
         }
 
@@ -97,9 +106,12 @@ Core.use(({ log, request, publish, subscribe }) => {
         name: attr("name"),
         value: prop("value"),
 
-        componentDidMount() {
+        async componentDidMount() {
             log("  x-experiment.componentDidMount", this);
             this.value = "a value from componentDidMount";
+            await new Promise((resolve, reject) => {
+                setTimeout(resolve, 2000);
+            });
         },
         componentDidUnmount() {
             log("  x-experiment.componentDidUnmount", this);
