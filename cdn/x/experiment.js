@@ -102,6 +102,18 @@ Core.use(({ log, request, publish, subscribe }) => {
         customElements.define(tag, Component);
     }
 
+    function h() { }
+    function edn() { }
+    const p = new Proxy({}, {
+        get: function (target, key) {
+            return (...args) => h(key, ...args);
+        },
+    });
+    function expr() { }
+    function html(...args) {
+        console.log("html", args);
+    }
+
     define("x-experiment", {
         name: attr("name"),
         value: prop("value"),
@@ -118,7 +130,88 @@ Core.use(({ log, request, publish, subscribe }) => {
         },
         render() {
             log("  x-experiment.render", this);
-            this.appendChild(this.ownerDocument.createTextNode(`Experimental ${this.name}`));
+            const div = this.ownerDocument.createElement("div");
+            const i = this.ownerDocument.createElement("i");
+            const text = this.ownerDocument.createTextNode(`Experimental ${this.name}`);
+            i.appendChild(text);
+            div.appendChild(i);
+            this.appendChild(div);
+
+            // Pro: Declarative
+            // Pro: Top-down execution possible
+            // Pro: Familiar
+            // Pro: Just data, can be transferred
+            // Con: Hard to provide typings
+            // Con: Hard to minify
+            return html`
+                <x-requires elements="child"></x-requires>
+                <div>
+                    <i>${this.name}</i>
+                    <x-child></x-child>
+                </div>
+            `;
+
+            // Pro: Declarative
+            // Pro: Top-down execution possible
+            // Pro: Just data, can be transferred
+            // Pro: Easy to minify
+            // Con: Hard to provide typings
+            // Con: Unfamiliar
+            return expr(
+                ["x-requires", { elements: "child" }],
+                ["div", ["i", `${this.name}`], ["x-child"]]
+            );
+
+            // Pro: Can provide typings
+            // Pro: Uses JSX conventions
+            // Pro: Familiar
+            // Pro: Easy to minify
+            // Con: Bottom-up execution
+            // Con: Not easily transferable
+            return [
+                h("x-requires", { elements: "child" }),
+                h("div", h("i", `${this.name}`), h("x-child")),
+            ];
+
+            // Pro: Can provide typings
+            // Con: Unfamiliar
+            // Con: Bottom-up execution
+            // Con: Not easily transferable
+            // Con: Too "clever"
+            // Con: Hard to minify
+            return p.fragment(
+                p.xRequires({ elements: "child" }),
+                p.div(p.i(`${this.name}`), p.xChild()),
+            );
+            return ({ xRequires, div, i, xChild }) => [
+                xRequires({ elements: "child" }),
+                div(i(`${this.name}`), xChild()),
+            ];
+
+            // Pro: Top-down execution possible
+            // Con: Hard to provide typings
+            // Con: Very unfamiliar
+            // Con: Not easily transferable
+            // Con: Way too "clever"
+            // Con: Hard to minify
+            return (p.fragment)
+                (p.xRequires, { elements: "child" })()
+                (p.div)
+                    (p.i, `${this.name}`)()
+                    (p.xChild)()
+                ()
+            ();
+
+            // Pro: Declarative
+            // Pro: Top-down execution possible
+            // Pro: Just data, can be transferred
+            // Con: Hard to provide typings
+            // Con: Hard to minify
+            return edn`
+               '((x-requires { :elements "child" })
+                 (div (i "${this.name}") (x-child))
+                )
+            `;
         },
     });
 
