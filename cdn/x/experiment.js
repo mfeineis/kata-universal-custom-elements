@@ -23,17 +23,20 @@ Core.use(({ log, request, publish, subscribe }) => {
                 log("Component.constructor", ...args);
                 super(...args);
 
+                this.__activity__ = [];
                 this.__store__ = new Map();
                 for (const [key, { name }] of attrs.entries()) {
                     Object.defineProperty(this, key, {
                         get() {
                             const value = this.getAttribute(name) ?? null;
                             log("  Component.attr", key, ".get", value);
+                            this.__activity__.push(["attr.get", key, value]);
                             this.__store__.set(key, value);
                             return value;
                         },
                         set(value) {
                             const old = this.__store__.get(key);
+                            this.__activity__.push(["attr.set", key, value, old]);
                             if (old === value) {
                                 return;
                             }
@@ -47,11 +50,14 @@ Core.use(({ log, request, publish, subscribe }) => {
                     Object.defineProperty(this, key, {
                         get() {
                             const value = this.__store__.get(key);
+                            this.__activity__.push(["prop.get", key, value]);
                             log("  Component.prop", key, ".get", value);
                             return value;
                         },
                         set(value) {
+                            const old = this.__store__.get(key);
                             log("  Component.prop", key, ".set", value);
+                            this.__activity__.push(["prop.set", key, value, old]);
                             this.__store__.set(key, value);
                         }
                     });
@@ -59,11 +65,17 @@ Core.use(({ log, request, publish, subscribe }) => {
             }
             async connectedCallback() {
                 log("Component.connectedCallback:before");
+                this.__activity__ = [];
                 const task = this.componentDidMount();
+                log("Component.componentDidMount.activity", ...this.__activity__);
+                this.__activity__ = [];
                 this._render();
+                log("Component._render.init.activity", ...this.__activity__);
                 await task;
                 log("Component.connectedCallback:beforeRender");
+                this.__activity__ = [];
                 this._render();
+                log("Component._render.activity", ...this.__activity__);
                 log("Component.connectedCallback:afterRender");
                 log("Component.connectedCallback:after", "store", this.__store__);
             }
@@ -108,16 +120,6 @@ Core.use(({ log, request, publish, subscribe }) => {
         customElements.define(tag, Component);
     }
 
-    function h() { }
-    function edn() { }
-    const p = new Proxy({}, {
-        get: function (target, key) {
-            return (...args) => h(key, ...args);
-        },
-    });
-    function html(...args) {
-        console.log("html", args);
-    }
     function expr(...exprs) {
 
         function eval([tag, props, ...children]) {
